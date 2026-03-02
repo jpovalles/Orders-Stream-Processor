@@ -17,13 +17,13 @@ The general flow is as follows:
 
 ### Steps
 1. **Clone the repository**
-```console
+```bash
 git clone https://github.com/jpovalles/Orders-Stream-Processor.git
 cd Orders-Stream-Processor
 ```
 
 2. **Start the services:**
-```console
+```bash
 docker compose up --build
 ```
 
@@ -37,7 +37,7 @@ Make sure there are no connection errors between services before running the cli
 
 ## Running the client
 Once all containers are running correctly, execute the clients.py script inside the python_client container to simulate sending orders to the queue:
-```console
+```bash
 docker exec -it python_service python clients.py
 ```
 
