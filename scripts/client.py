@@ -16,6 +16,7 @@ def print_response(resp):
 
 # ──────────────── TASKS ────────────────
 
+
 def list_tasks():
     print("\n[GET /tasks]")
     resp = requests.get(f"{BASE_URL}/tasks")
@@ -33,6 +34,7 @@ def get_task():
 
 
 # ──────────────── ORDERS ────────────────
+
 
 def list_orders():
     print("\n[GET /orders]")
@@ -107,7 +109,9 @@ def main():
             try:
                 action()
             except requests.exceptions.ConnectionError:
-                print(f"\n  X No se pudo conectar a {BASE_URL}. Verifica que la API esté corriendo.")
+                print(
+                    f"\n  X No se pudo conectar a {BASE_URL}. Verifica que la API esté corriendo."
+                )
             except Exception as e:
                 print(f"\n  X Error inesperado: {e}")
         else:

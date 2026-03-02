@@ -12,6 +12,7 @@ class OrderUpdate(BaseModel):
     product: Optional[str] = Field(None, example="Laptop Pro")
     product_quantity: Optional[int] = Field(None, gt=0, example=5)
 
+
 class OrderResponse(BaseModel):
     order_id: str
     product: str
@@ -26,10 +27,10 @@ class TaskResponse(BaseModel):
     task_id: str
     status: str
     type: str
-    
 
     class Config:
         from_attributes = True
+
 
 # Response
 class AcceptedResponse(BaseModel):
