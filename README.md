@@ -47,7 +47,7 @@ Make sure there are no connection errors between services before running the cli
 ## Running the client
 Once all containers are running correctly, execute the clients.py script inside the python_client container to simulate sending orders to the queue:
 ```bash
-docker exec -it python_service python clients.py
+docker exec -it python_service python client.py
 ```
 
 When you run `clients.py`, use the menu:
