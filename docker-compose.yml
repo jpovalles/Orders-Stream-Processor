@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:alpine3.22
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+      POSTGRES_DB: orders_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d orders_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_server
+    ports:
+      - "5672:5672" # RabbitMQ port
+      - "15672:15672" # Management UI port
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  python_client:
+    build: .
+    container_name: python_service
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    working_dir: /app/scripts
+    command: tail -f /dev/null
+  
+  api:
+    build: .
+    container_name: api
+    volumes:
+      - .:/app
+    ports:
+     - "8001:8001"
+    command: uvicorn api.api:app --host 0.0.0.0 --port 8001 --reload
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  
+  create_worker:
+    build: .
+    container_name: create_worker
+    volumes:
+      - .:/app
+    ports:
+      - "8002:8002"
+    command: python -m workers.create_order_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  
+  delete_worker:
+    build: .
+    container_name: delete_worker
+    volumes:
+      - .:/app
+    ports:
+      - "8003:8003"
+    command: python -m workers.delete_order_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
