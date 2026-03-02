@@ -18,8 +18,8 @@ The general flow is as follows:
 ### Steps
 1. **Clone the repository**
 ```console
-git clone <repository-url>
-cd rabbitMQ-orders
+git clone https://github.com/jpovalles/Orders-Stream-Processor.git
+cd Orders-Stream-Processor
 ```
 
 2. **Start the services:**
