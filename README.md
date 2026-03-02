@@ -10,6 +10,15 @@ The general flow is as follows:
 ## Architecture
 (image will go here)
 
+## Technologies Used
+
+This project is built using the following technologies:
+
+* **FastAPI** – REST API framework
+* **SQLAlchemy** – ORM for database interaction
+* **PostgreSQL** – Relational database
+* **RabbitMQ** – Message broker for asynchronous processing
+
 ## Deployment with Docker Compose
 ### Prerequisites
 * [Docker](https://www.docker.com/) installed
