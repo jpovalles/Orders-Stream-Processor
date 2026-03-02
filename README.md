@@ -8,7 +8,7 @@ The general flow is as follows:
 3. Workers consume the messages from the queue and execute the corresponding operations on the PostgreSQL database asynchronously.
 
 ## Architecture
-(image will go here)
+![Architecture](assets/arch.png)
 
 ## Technologies Used
 
@@ -40,7 +40,7 @@ docker compose up --build
 
 It is recommended to review the container logs to confirm that all services have started correctly and that the workers are connected to RabbitMQ:
 
-(image will go here)
+![Compose logs](assets/compose-up.png)
 
 Make sure there are no connection errors between services before running the client.
 
