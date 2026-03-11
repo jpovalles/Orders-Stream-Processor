@@ -46,6 +46,12 @@ services:
     ports:
      - "8001:8001"
     command: uvicorn api.api:app --host 0.0.0.0 --port 8001 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,4 +84,14 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+
+  dashboard:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./ui/index.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      api:
         condition: service_healthy

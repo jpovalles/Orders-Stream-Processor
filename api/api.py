@@ -1,5 +1,18 @@
 from fastapi import FastAPI, Depends, status, HTTPException
 
+
+app = FastAPI()
+
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # o especifica "http://localhost:8080"
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 ## inicializar la base de datos
 from database.conn import engine, get_db
 from database.models import Base, Task, Order
@@ -14,7 +27,17 @@ Base.metadata.create_all(bind=engine)
 print("---- Base de datos inicializada ----")
 
 
-# ______________ Tasks _________________
+
+## funcion para publicar en cola
+from services.rabbitmq import publish_message
+
+# Healthceck
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+#______________ Tasks _________________
 def crearTask(db, taskType):
     task = Task(status="Pending", type=taskType)
 

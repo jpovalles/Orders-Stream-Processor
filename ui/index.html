@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task & Order Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #e8ff47;
+    --accent2: #ff4757;
+    --accent3: #47c6ff;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --pending: #ffb347;
+    --done: #47ff8a;
+    --failed: #ff4757;
+    --radius: 4px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* Header */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.9);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.6; }
+  }
+
+  .api-config {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .api-config input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    width: 240px;
+    transition: border-color 0.2s;
+  }
+
+  .api-config input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .btn-sm {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 6px 14px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .btn-sm:hover { background: var(--accent); color: var(--bg); }
+
+  /* Layout */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  /* Section Cards */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: slideUp 0.4s ease both;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section:nth-child(2) { animation-delay: 0.08s; }
+  .section:nth-child(3) { animation-delay: 0.16s; }
+  .section:nth-child(4) { animation-delay: 0.24s; }
+
+  .section-header {
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title span {
+    width: 20px; height: 2px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  .section-body { padding: 1.5rem; }
+
+  /* Refresh button */
+  .btn-refresh {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-refresh:hover { border-color: var(--accent3); color: var(--accent3); }
+  .btn-refresh.loading svg { animation: spin 0.8s linear infinite; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+  }
+
+  .data-table th {
+    text-align: left;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.62rem;
+    padding: 0 8px 12px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid rgba(30,30,46,0.5);
+    vertical-align: middle;
+    color: var(--text);
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(232,255,71,0.02); }
+
+  /* Status badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .badge-pending { color: var(--pending); background: rgba(255,179,71,0.1); }
+  .badge-done, .badge-completed { color: var(--done); background: rgba(71,255,138,0.1); }
+  .badge-failed { color: var(--failed); background: rgba(255,71,87,0.1); }
+  .badge-create { color: var(--accent3); background: rgba(71,198,255,0.1); }
+  .badge-delete { color: var(--accent2); background: rgba(255,71,87,0.1); }
+
+  /* Delete button */
+  .btn-delete {
+    background: none;
+    border: 1px solid rgba(255,71,87,0.3);
+    color: var(--accent2);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .btn-delete:hover { background: rgba(255,71,87,0.15); border-color: var(--accent2); }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+  }
+
+  /* Forms */
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    transition: border-color 0.2s;
+  }
+
+  .form-input:focus { outline: none; border-color: var(--accent); }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    color: var(--bg);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 12px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+    margin-top: 0.5rem;
+  }
+
+  .btn-primary:hover { background: #d4eb30; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Task lookup */
+  .lookup-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .lookup-row .form-input { margin: 0; }
+
+  .result-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(30,30,46,0.5);
+  }
+
+  .result-row:last-child { border-bottom: none; }
+  .result-key { color: var(--muted); letter-spacing: 0.08em; }
+  .result-val { color: var(--text); }
+
+  /* Toast */
+  #toast-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 12px 18px;
+    border-radius: var(--radius);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    animation: toastIn 0.25s ease;
+    max-width: 320px;
+  }
+
+  .toast.error { border-left-color: var(--accent2); }
+  .toast.info { border-left-color: var(--accent3); }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Scrollable table body */
+  .table-scroll { max-height: 340px; overflow-y: auto; }
+  .table-scroll::-webkit-scrollbar { width: 4px; }
+  .table-scroll::-webkit-scrollbar-track { background: transparent; }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Full width sections */
+  .full-width { grid-column: 1 / -1; }
+
+  /* Response badge */
+  .task-id-chip {
+    display: inline-block;
+    background: rgba(232,255,71,0.1);
+    border: 1px solid rgba(232,255,71,0.3);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-top: 10px;
+  }
+
+  .loading-row td {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Task Manager
+  </div>
+  <div class="api-config">
+    <input type="text" id="api-base" placeholder="http://localhost:8001" value="http://localhost:8001">
+    <button class="btn-sm" onclick="refreshAll()">Connect</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ORDERS LIST -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span></span>Orders</div>
+      <button class="btn-refresh" id="btn-refresh-orders" onclick="loadOrders()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+    <div class="section-body" style="padding:0">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="padding-left:1.5rem">ID</th>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="orders-body">
+            <tr class="loading-row">
+                <td colspan="4">
+                    <span class="spinner">
+                    </span>
+                    Loading...
+                </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE ORDER -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span></span>Create Order</div>
+    </div>
+    <div class="section-body">
+      <div class="form-group">
+        <label class="form-label">Product</label>
+        <input type="text" class="form-input" id="new-product" placeholder="e.g. Widget A">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantity</label>
+        <input type="number" class="form-input" id="new-quantity" placeholder="1" min="1">
+      </div>
+      <button class="btn-primary" id="btn-create-order" onclick="createOrder()">
+        + Create Order
+      </button>
+      <div id="create-result" style="margin-top:1rem;display:none"></div>
+    </div>
+  </div>
+
+  <!-- TASKS LIST -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span></span>All Tasks</div>
+      <button class="btn-refresh" id="btn-refresh-tasks" onclick="loadTasks()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+    <div class="section-body" style="padding:0">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="padding-left:1.5rem">ID</th>
+              <th>Type</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tasks-body">
+            <tr class="loading-row"><td colspan="3"><span class="spinner"></span>Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASK LOOKUP -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span></span>Task Lookup</div>
+    </div>
+    <div class="section-body">
+      <div class="lookup-row">
+        <input type="number" class="form-input" id="lookup-id" placeholder="Task ID" min="1" onkeydown="if(event.key==='Enter')lookupTask()">
+        <button class="btn-sm" onclick="lookupTask()">Search</button>
+      </div>
+      <div id="task-result"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+  const apiBase = () => document.getElementById('api-base').value.replace(/\/$/, '');
+
+  // ── Toast ──────────────────────────────────────────
+  function toast(msg, type = 'success') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast ${type === 'error' ? 'error' : type === 'info' ? 'info' : ''}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  // ── Helpers ────────────────────────────────────────
+  function statusBadge(s) {
+    const map = { Pending:'pending', Done:'done', Completed:'completed', Failed:'failed' };
+    const cls = map[s] || 'pending';
+    return `<span class="badge badge-${cls}">${s}</span>`;
+  }
+
+  function typeBadge(t) {
+    const cls = t === 'Delete' ? 'delete' : 'create';
+    return `<span class="badge badge-${cls}">${t}</span>`;
+  }
+
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (loading) btn.classList.add('loading');
+    else btn.classList.remove('loading');
+  }
+
+  // ── Load Orders ────────────────────────────────────
+  async function loadOrders() {
+    setLoading('btn-refresh-orders', true);
+    const tbody = document.getElementById('orders-body');
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="4"><span class="spinner"></span>Loading...</td></tr>`;
+    try {
+      const res = await fetch(`${apiBase()}/orders`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      console.log(data)
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="4"><div class="empty">No orders found</div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(o => `
+        <tr>
+          <td style="padding-left:1.5rem;color:var(--muted)">#${o.order_id}</td>
+          <td>${o.product ?? '—'}</td>
+          <td>${o.product_qty ?? '—'}</td>
+          <td>
+            <button class="btn-delete" onclick="deleteOrder(${o.order_id})">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty" style="color:var(--accent2)">Error: ${e.message}</div></td></tr>`;
+      toast(`Failed to load orders: ${e.message}`, 'error');
+    } finally {
+      setLoading('btn-refresh-orders', false);
+    }
+  }
+
+  // ── Load Tasks ─────────────────────────────────────
+  async function loadTasks() {
+    setLoading('btn-refresh-tasks', true);
+    const tbody = document.getElementById('tasks-body');
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="3"><span class="spinner"></span>Loading...</td></tr>`;
+    try {
+      const res = await fetch(`${apiBase()}/tasks`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="3"><div class="empty">No tasks found</div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(t => `
+        <tr>
+          <td style="padding-left:1.5rem;color:var(--muted)">#${t.task_id}</td>
+          <td>${typeBadge(t.type)}</td>
+          <td>${statusBadge(t.status)}</td>
+        </tr>
+      `).join('');
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="3"><div class="empty" style="color:var(--accent2)">Error: ${e.message}</div></td></tr>`;
+      toast(`Failed to load tasks: ${e.message}`, 'error');
+    } finally {
+      setLoading('btn-refresh-tasks', false);
+    }
+  }
+
+  // ── Create Order ───────────────────────────────────
+  async function createOrder() {
+    const product = document.getElementById('new-product').value.trim();
+    const qty = parseInt(document.getElementById('new-quantity').value);
+    if (!product) { toast('Product name is required', 'error'); return; }
+    if (!qty || qty < 1) { toast('Quantity must be at least 1', 'error'); return; }
+
+    const btn = document.getElementById('btn-create-order');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+
+    try {
+      const res = await fetch(`${apiBase()}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product, product_quantity: qty })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const resultEl = document.getElementById('create-result');
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `
+        <div style="color:var(--muted);font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Order Accepted</div>
+        <span class="task-id-chip">Task ID: ${data.task_id}</span>
+      `;
+
+      document.getElementById('new-product').value = '';
+      document.getElementById('new-quantity').value = '';
+      toast(`Order queued → Task #${data.task_id}`, 'info');
+      setTimeout(loadOrders, 600);
+      setTimeout(loadTasks, 600);
+    } catch(e) {
+      toast(`Failed to create order: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '+ Create Order';
+    }
+  }
+
+  // ── Delete Order ───────────────────────────────────
+  async function deleteOrder(id) {
+    if (!confirm(`Delete order #${id}?`)) return;
+    try {
+      const res = await fetch(`${apiBase()}/orders/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      toast(`Order #${id} deleted → Task #${data.task_id}`, 'info');
+      setTimeout(loadOrders, 400);
+      setTimeout(loadTasks, 400);
+    } catch(e) {
+      toast(`Failed to delete order: ${e.message}`, 'error');
+    }
+  }
+
+  // ── Lookup Task ────────────────────────────────────
+  async function lookupTask() {
+    const id = document.getElementById('lookup-id').value;
+    if (!id) { toast('Enter a task ID', 'error'); return; }
+    const el = document.getElementById('task-result');
+    el.innerHTML = `<div class="empty"><span class="spinner"></span>Searching...</div>`;
+    try {
+      const res = await fetch(`${apiBase()}/tasks/${id}`);
+      if (res.status === 404) {
+        el.innerHTML = `<div class="empty" style="color:var(--accent2)">Task #${id} not found</div>`;
+        return;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const t = await res.json();
+      el.innerHTML = `
+        <div class="result-card">
+          <div class="result-row">
+            <span class="result-key">task_id</span>
+            <span class="result-val">#${t.task_id}</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">type</span>
+            <span class="result-val">${typeBadge(t.type)}</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">status</span>
+            <span class="result-val">${statusBadge(t.status)}</span>
+          </div>
+        </div>
+      `;
+    } catch(e) {
+      el.innerHTML = `<div class="empty" style="color:var(--accent2)">Error: ${e.message}</div>`;
+      toast(`Lookup failed: ${e.message}`, 'error');
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────
+  function refreshAll() {
+    loadOrders();
+    loadTasks();
+    toast('Refreshing all data...', 'info');
+  }
+
+  loadOrders();
+  loadTasks();
+</script>
+</body>
+</html>
