@@ -20,13 +20,9 @@ from .schemas import *
 
 from services.rabbitmq import publish_message  ## funcion para publicar en cola
 
-app = FastAPI()
-
 Base.metadata.create_all(bind=engine)
 
 print("---- Base de datos inicializada ----")
-
-
 
 ## funcion para publicar en cola
 from services.rabbitmq import publish_message
