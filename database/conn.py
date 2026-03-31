@@ -1,7 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from utils.get_parameter import get_ssm_parameter
 
-DATABASE_URL = "postgresql://user:user@postgres:5432/orders_db"
+database_host = get_ssm_parameter(name="/message-queue/dev/postgres/public_ip", default="localhost")
+
+DATABASE_URL = f"postgresql://admin:password123@{database_host}:5432/mydb"
 
 engine = create_engine(DATABASE_URL)
 

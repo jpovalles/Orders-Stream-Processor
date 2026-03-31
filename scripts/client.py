@@ -1,8 +1,10 @@
 import requests
 import json
 
-BASE_URL = "http://api:8001"  # Cambiar esto si la API está en otro host/puerto
+from utils.get_parameter import get_ssm_parameter
 
+api_host = get_ssm_parameter(name="/message-queue/dev/api/public_ip", default="localhost")
+BASE_URL = f"http://{api_host}:8001"
 
 def print_response(resp):
     print(f"\n  Status: {resp.status_code}")
