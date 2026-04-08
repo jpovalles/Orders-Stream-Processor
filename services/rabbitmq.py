@@ -3,7 +3,7 @@ import json
 
 
 def get_connection():
-    credentials = pika.PlainCredentials("user", "password")
+    credentials = pika.PlainCredentials("admin", "password123")
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host="rabbitmq", credentials=credentials)
     )
