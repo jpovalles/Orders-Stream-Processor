@@ -5,7 +5,7 @@ from utils.get_parameter import get_ssm_parameter
 
 def get_connection():
     rabbitmq_host = get_ssm_parameter(name="/message-queue/dev/rabbitmq/public_ip", default="localhost")
-    credentials = pika.PlainCredentials("user", "password123")
+    credentials = pika.PlainCredentials("admin", "password123")
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host=rabbitmq_host, credentials=credentials)
     )
